@@ -27,7 +27,7 @@ If set to manual, you will have to configure the files and directories manually 
 If set to workman-v1, the script will be compatible with the appcast.php from Workman released in October 2011.
 If set to workman-v2, the script will be compatible with the appcast.php from Workman released in January 2012.
 */
-$config['files_and_directories'] = 'workman-v2';
+$config['files_and_directories'] = 'workman-v1';
 
 /*
 set to your liking:
@@ -132,9 +132,9 @@ Based on that, it will then write to 1 or both of these directories simultaneous
 
 If you are not using these variables, it will write to just 1 directory.
 */
-$config['directories'] = array('release_directory' => 'appcasts:api2:/:stack:_:secret:/', 
-							   'appcast_directory' => 'appcasts:api2:/:stack:_:secret:/',
-							   'update_directory'  => 'appcasts:api2:/:stack:_:secret:/');
+$config['directories'] = array('release_directory' => 'appcasts:api1:/:stack:/', 
+							   'appcast_directory' => 'appcasts:api1:/:stack:/',
+							   'update_directory'  => 'appcasts:api1:/:stack:/');
 
 /*
 These next settings are only necessary if you set files_and_directories to "manual". 
