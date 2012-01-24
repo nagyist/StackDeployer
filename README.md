@@ -93,6 +93,8 @@ Now, you'll be able to access the StackDeployer simply by typing "deploy" in the
 ## AppleScript
 
 An applescript is included. You can drag stacks on this script and it will automatically open the Terminal window for seeing the output.
+
+The applescript can be placed anywhere, including the Desktop.
 	
 ## Generating the release notes
 
