@@ -22,7 +22,7 @@ If you need your directories or filenames to have special variables in them, suc
 
 So if you want your appcast.xml to be named "StackName_1.0.1.xml", you will do the following in deploy-config.php:
 
-'appcast_file' => ':stack:_:v:.xml'
+	'appcast_file' => ':stack:_:v:.xml'
 
 ## Requisites for signing appcasts
 
