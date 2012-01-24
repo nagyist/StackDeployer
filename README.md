@@ -14,21 +14,7 @@ The full path should then be: "/Users/Username/StackDeployer/"
 
 ## Configuration
 
-Configure everything to your liking in deploy-config-sample.php - Once you have done so, rename the file to "deploy-config.php".
-
-If you need your directories or filenames to have special variables in them, such as the version nr, you can do so via these template variables:
-   
-:stack: - will be replaced by the stack filename
-:lstack: - will be replaced by the lowercase version of the stack filename
-:uid: - the stack UID (probably only used by myself, feel free to ignore)
-:v: - the short version nr of the stack
-:version: - the long version nr of the stack.
-:api: - the min api version specified in the stack
-:apii: - the min api version specified in the stack, made specifically for compatibility with Workman's script
-
-So if you want your appcast.xml to be named "StackName_1.0.1.xml", you will do the following in deploy-config.php:
-
-	'appcast_file' => ':stack:_:v:.xml'
+Configure everything to your liking in deploy-config-sample.php - documentation is inline. Once you have done so, rename the file to "deploy-config.php".
 
 ## Requisites for signing appcasts
 
