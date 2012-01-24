@@ -40,7 +40,7 @@ set to your liking:
   - verbose = true will output full file path of each file uploaded.
 */	
 $config['options'] = array('upload'       => true, 
-						   'purgecloud'   => true, 
+						   'purgecloud'   => false, 
 						   'purgelocal'   => true, 
 						   'appcast'      => true, 
 						   'releasenotes' => true, 
