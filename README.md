@@ -1,5 +1,11 @@
 # Stack Deployer Configuration
 
+## What Does This Do?
+
+This script will automatically zip your stacks, sign them, create the appcast XML, create the release notes HTML (if required), and upload to your FTP server or dropbox account. 
+
+It can process both single files and entire directories. 
+
 ## File System Placement
 
 Place the StackDeployer folder in /Users/Username/
