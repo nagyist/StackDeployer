@@ -460,14 +460,23 @@ class StackDeployer {
 			echo '  -- ERROR: Seems like the stack ' . $this->info['stack_location'] . ' is not a directory.' . "\r\n";
 			return false;
 		}
-
+		
 		$files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->info['stack_location']));
+		
+		$start = false;
+		
+		$stack_position = strpos($this->info['stack_location'], $this->info['stack_name']);
+		
+		if (!$stack_position) {
+			echo '  -- ERROR: Can\'t find stack name in stack location.' . "\r\n";
+			die();
+		}
 		
 		foreach ($files as $file) {			
 			if (is_dir($file) === true) {
-				$zip->addEmptyDir($file . '/');
-			} else if (is_file($file) === true) {				
-				$zip->addFromString($file, file_get_contents($file));
+				$zip->addEmptyDir(substr($file, $stack_position) . '/');
+			} else if (is_file($file) === true) {	
+				$zip->addFromString(substr($file, $stack_position), file_get_contents($file));
 			}
 		}
 
