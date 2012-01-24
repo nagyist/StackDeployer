@@ -8,9 +8,7 @@ It can process both single files and entire directories.
 
 ## File System Placement
 
-Place the StackDeployer folder in /Users/Username/
-
-The full path should then be: "/Users/Username/StackDeployer/"
+Place the files in "/Users/Username/StackDeployer/" (the files, not the folder from the download)
 
 ## Configuration
 
