@@ -6,6 +6,21 @@ This script will automatically zip your stacks, sign them, create the appcast XM
 
 It can process both single files and entire directories. 
 
+## Sample Output
+
+	imac:~ Test$ deploy -f /Users/Test/Desktop/Test.stack/ -v
+	* Deploying stack "/Users/Test/Desktop/Test.stack/"...
+  	-- Stack is compatible with Stacks 2 only.
+  	-- Stack zipped: Test.zip (40230 bytes)
+  	-- Signature generated: MC0CFFR6HAtwAdPNa5sIdSye7ZHsYnJIAhUAmeC2tpvKudPdR7YtQr4p\/9hnTSY=
+  	-- Appcast XML generated: appcast.xml
+  	-- Release notes HTML generated: Test.html
+  	-- Uploading to DropBox (single appcast directory)...
+  	-- Uploading "appcasts/Test/Test.zip" - OK
+  	-- Uploading "appcasts/Test/appcast.xml" - OK
+  	-- Uploading "appcasts/Test/Test.html" - OK
+  	-- Uploaded successfully.
+
 ## File System Placement
 
 Place the files in "/Users/Username/StackDeployer/" (the files, not the folder from the download)
