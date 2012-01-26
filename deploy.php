@@ -27,9 +27,11 @@ class StackDeployer {
 		} else {
 			$this->include_path = getcwd();
 		}
+		
+		$this->include_path = rtrim($this->include_path, '/') . '/';
 				
 		if (!file_exists($this->include_path . 'lib/deploy-config.php')) {
-			echo '  -- ERROR: Please configure this script first. Open StackDeployer/lib/deploy-config-sample.php and follow instructions. Rename to deploy-config.php once done.' . "\r\n";
+			echo '  -- ERROR: Please configure this script first. Open ' . $this->include_path . 'lib/deploy-config-sample.php and follow instructions. Rename to deploy-config.php once done.' . "\r\n";
 			die();
 		}
 		
