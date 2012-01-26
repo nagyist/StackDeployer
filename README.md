@@ -20,6 +20,8 @@ It can process both single files and entire directories.
   	-- Uploading "appcasts/Test/appcast.xml" - OK
   	-- Uploading "appcasts/Test/Test.html" - OK
   	-- Uploaded successfully.
+    -- Creating DMG...
+    -- Done creating DMG.
 
 ## File System Placement
 
@@ -55,9 +57,17 @@ This will deploy all stacks in the specified directory.
 
 Interactive mode. Useful if processing a directory of stacks. The script will ask you which stacks to deploy. (yes/no)
 
-	- v
+	-v
   
 Verbose mode. This will output all filenames as they are being uploaded to FTP or dropbox.
+	
+	-o
+
+The output folder. If not specified, the value from the config file will be used instead.
+
+	-g
+	
+The DMG group settings key. Useful if you have several different DMG layout requirements. Refers to the key in the config file.
 
 	--noupload
 
@@ -79,9 +89,18 @@ Don't generate the appcast.xml
 
 Don't generate the releasenotes.html
 
+	--nodmg
+	
+Don't generate the DMG.
+
 ### Example usage:
 
-	php deploy.php -d /Users/username/Desktop -i -v --nopurgelocal
+	php deploy.php -d /Users/username/Desktop -i -v -o ~/Desktop/Updates/ --noreleasenotes
+	
+This will process all the stacks found on the Desktop interactively (which means you have to confirm which stacks to update).  
+Verbose mode is on, so you will see output of each file as it's being uploaded. 
+The output folder is set to the Updates folder on your desktop. 
+No release notes should be generated.
   
 ## Creating an alias to the PHP command
 
@@ -103,6 +122,26 @@ Save by typing CMD+X and then confirm with Y.
 
 Now, you'll be able to access the StackDeployer simply by typing "deploy" in the command line.
 
+## DMG Creation
+
+This script can optionally create DMG files of your updates too. For the moment a simple DMG, but Filestorm support (with installer) is planned for the next update.
+
+Set your options in the config file. You can specify the width/height, position, background image and so on.
+
+If you have files that need to be included aside from the stack, add them to:
+
+	lib/dmg/always
+	
+These files will be added to all stacks deployed.
+
+	lib/dmg/conditional
+	
+Add subfolders for each stack. The files in the folder that matches the stack filename will be added to the DMG. For example:
+
+	TestName.stack
+
+	lib/dmg/conditional/TestName/readme.txt
+	
 ## AppleScript
 
 An applescript is included. You can drag stacks on this script and it will automatically open the Terminal window for seeing the output.
