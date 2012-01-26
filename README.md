@@ -2,7 +2,7 @@
 
 ## What Does This Do?
 
-This script will automatically zip your stacks, sign them, create the appcast XML, create the release notes HTML (if required), and upload to your FTP server or dropbox account. 
+This script will automatically zip your stacks, sign them, create the appcast XML, create the release notes HTML (if required), upload the files to your FTP server or dropbox account and creates a DMG.
 
 It can process both single files and entire directories. 
 
