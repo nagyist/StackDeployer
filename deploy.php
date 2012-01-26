@@ -2,6 +2,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 set_time_limit(0);
+ini_set('memory_limit', '64M');
 
 if (version_compare(PHP_VERSION, '5.0.0', '<')) {
 	echo '  -- ERROR: PHP 5 is needed for this script to function correctly.' . "\r\n";
@@ -20,22 +21,28 @@ class StackDeployer {
 	
 	private $include_path       = '';
 	
-	public function run() {		
-		if (!file_exists($this->include_path . 'deploy-config.php')) {
+	public function run() {	
+		if (!empty($_SERVER['PWD'])) {
+			$this->include_path = $_SERVER['PWD'];
+		} else {
+			$this->include_path = getcwd();
+		}
+
+		if (!file_exists($this->include_path . 'lib/deploy-config.php')) {
 			$this->include_path = $_SERVER['HOME'] . '/StackDeployer/';
 		}
 				
-		if (!file_exists($this->include_path . 'deploy-config.php')) {
-			echo '  -- ERROR: Please configure this script first. Open deploy-config-sample.php and follow instructions. Rename to deploy-config.php once done.' . "\r\n";
+		if (!file_exists($this->include_path . 'lib/deploy-config.php')) {
+			echo '  -- ERROR: Please configure this script first. Open StackDeployer/lib/deploy-config-sample.php and follow instructions. Rename to deploy-config.php once done.' . "\r\n";
 			die();
 		}
 		
-		require $this->include_path . 'deploy-config.php';
+		require $this->include_path . 'lib/deploy-config.php';
 		
 		$this->config = $config;
 		
-		if (!file_exists($this->include_path . 'dsa_priv.pem')) {
-			echo '  -- ERROR: dsa_priv.pem not found. Please add this to the folder containing "deploy.php". Aborting.' . "\r\n";
+		if (!file_exists($this->include_path . 'lib/dsa_priv.pem')) {
+			echo '  -- ERROR: dsa_priv.pem not found. Please add this to the "StackDeployer/lib" folder. Aborting.' . "\r\n";
 			die();
 		}
 		
@@ -58,8 +65,8 @@ class StackDeployer {
 		
 		$stacks = array();
 		
-		$options = getopt('f:d:iv', array('noupload', 'nopurgecloud', 'nopurgelocal', 'noappcast', 'noreleasenotes'));
-		
+		$options = getopt('f:d:o:g:iv', array('noupload', 'nopurgecloud', 'nopurgelocal', 'noappcast', 'noreleasenotes', 'nodmg'));
+
 		if (!empty($options['f'])) {
 			if (preg_match('/\.stack/i', $options['f'])) {
 				$stack = trim($options['f']);
@@ -84,6 +91,10 @@ class StackDeployer {
 			}
 		} else {
 			$stacks = glob('*.stack');
+		}
+		
+		if (!empty($options['o'])) {
+			$this->config['output_folder'] = trim($options['o']);
 		}
 			
 		if (isset($options['i'])) {
@@ -116,7 +127,7 @@ class StackDeployer {
 			$this->config['options']['upload']     = false;
 			$this->config['options']['purgelocal'] = false;
 		}
-		
+				
 		if (isset($options['nopurgecloud'])) {
 			$this->config['options']['purgecloud'] = false;
 		}
@@ -137,6 +148,17 @@ class StackDeployer {
 			$this->config['options']['verbose'] = true;
 		}
 		
+		if (isset($options['nodmg'])) {
+			$this->config['options']['dmg'] = false;
+		}
+		
+		if (!empty($options['g'])) {
+			$this->config['options']['dmg'] = true;
+			$this->config['options']['dmg_group'] = trim($options['g']);
+		} else {
+			$this->config['options']['dmg_group'] = 'default';
+		}
+				
 		if ($this->config['directories']['update_directory'][0] == '/' || $this->config['directories']['appcast_directory'][0] == '/' || $this->config['directories']['release_directory'][0] == '/') {
 			echo '  -- ERROR: Directories for release notes, appcast and updates should be relative, not absolute (should not start with "/").' . "\r\n";
 			die();
@@ -147,9 +169,27 @@ class StackDeployer {
 			die();
 		}	
 		
-		$this->config['directories']['update_directory']  = rtrim($this->config['directories']['update_directory'], '/') . '/';
-		$this->config['directories']['appcast_directory'] = rtrim($this->config['directories']['appcast_directory'], '/') . '/';
-		$this->config['directories']['release_directory'] = rtrim($this->config['directories']['release_directory'], '/') . '/';
+		$this->config['output_folder'] = rtrim(trim($this->config['output_folder']), '/') . '/';
+		
+		if (empty($this->config['output_folder']) || $this->config['output_folder'] == '/' || (file_exists($this->config['output_folder']) && !is_dir($this->config['output_folder']))) {
+			echo '  -- ERROR: Invalid output folder. Aborting.' . "\r\n";
+			die();
+		}
+		
+		if (!file_exists($this->config['output_folder'])) {
+			mkdir($this->config['output_folder'], 0777, true);
+		}
+		
+		$this->config['output_folder'] = str_replace('~', $_SERVER['HOME'], $this->config['output_folder']);
+		
+		//relative folder
+		if ($this->config['output_folder'][0] != '/') {
+			$this->config['output_folder'] = $this->include_path . $this->config['output_folder'];
+		}
+		
+		$this->config['directories']['update_directory']  = rtrim(trim($this->config['directories']['update_directory']), '/') . '/';
+		$this->config['directories']['appcast_directory'] = rtrim(trim($this->config['directories']['appcast_directory']), '/') . '/';
+		$this->config['directories']['release_directory'] = rtrim(trim($this->config['directories']['release_directory']), '/') . '/';
 						
 		$cnt = count($stacks);
 		$i   = 1;
@@ -215,6 +255,10 @@ class StackDeployer {
 					echo '  -- ERROR: Please add your cloudflare settings to the config file (deploy-config.php).' . "\r\n";
 				}
 			}
+			
+			if ($success && $this->config['options']['dmg']) {				
+				$this->createDMG($this->config['options']['dmg_group']);
+			}
 						
 			if ($success && $this->config['options']['purgelocal']) {
 				$this->purgeLocalCache();
@@ -227,13 +271,187 @@ class StackDeployer {
 		}
 	}
 	
+	private function createDMG($group='default') {
+		echo '  -- Creating DMG...' . "\r\n";
+		
+		$include_path = ($this->include_path ? $this->include_path : './');
+		
+		$dmg = $this->config['dmg'][$group];
+		
+		if (empty($dmg['window_width'])) {
+			$dmg['window_width']  = 400;
+		}
+		
+		if (empty($dmg['window_height'])) {	
+			$dmg['window_height'] = 400;
+		}
+		
+		if (empty($dmg['window_pos_x'])) {
+			$dmg['window_pos_x'] = 200;
+		}
+		
+		if (empty($dmg['window_pos_y'])) {
+			$dmg['window_pos_y'] = 200;
+		}
+		
+		if (!empty($dmg['background'])) {
+			if (file_exists($include_path . 'lib/dmg/' . $dmg['background'])) {
+				$dmg['background'] = $include_path . 'lib/dmg/' . $dmg['background'];
+			} else {
+				$dmg['background'] = '';
+			}
+		}
+		
+		if (empty($dmg['icon_size'])) {
+			$dmg['icon_size'] = 128;
+		}
+		
+		$search  = array(':v:', ':version:', ':stack:', ':lstack:', ':stackfile:', ':title:');
+		$replace = array($this->info['short_version'], $this->info['version'], $this->info['stack_name'], strtolower($this->info['stack_name']), $this->info['stack_filename'], $this->info['title']);
+			
+		$dmg['volume_name'] = str_ireplace($search, $replace, $dmg['volume_name']);
+		
+		$devices = shell_exec('df');
+		
+		if ($devices) {
+			$devices = explode("\n", $devices);
+			
+			foreach ($devices as $device) {				
+				$device = preg_split('/\s+/', $device, 6);
+				
+				if (!empty($device[5]) && preg_match('/^\/Volumes\/' . preg_quote($dmg['volume_name'], '/') . '\s*[0-9]*$/i', $device[5])) {
+					shell_exec('hdiutil detach ' . trim($device[0]));
+				}  
+			}
+		}
+		
+		if (file_exists($this->config['output_folder'] . 'rw.' . $this->info['stack_name'] . '.dmg')) {
+			unlink($this->config['output_folder'] . 'rw.' . $this->info['stack_name'] . '.dmg');
+		}
+	
+		if (file_exists($this->config['output_folder'] . $this->info['stack_name'] . '.dmg')) {
+			unlink($this->config['output_folder'] . $this->info['stack_name'] . '.dmg');
+		}
+		
+		if (empty($this->config['dmg'][$group])) {
+			echo '  -- ERROR: Incorrect dmg settings group specified: "' . $group . '". Aborting DMG creation.' . "\r\n";
+			return false;
+		}
+							
+		if (!file_exists($include_path. 'lib/dmg/temp/')) {
+			$suc = mkdir($include_path . 'lib/dmg/temp/', 0777);
+		} else {
+			$this->rrmdir($include_path . 'lib/dmg/temp/');
+		}
+				
+		if (is_dir($include_path . 'lib/dmg/always/')) {
+			$this->rcopy($include_path . 'lib/dmg/always/', $include_path . 'lib/dmg/temp/');
+		}
+				
+		if (is_dir($include_path . 'lib/dmg/conditional/' . $this->info['stack_name'])) {
+			$this->rcopy($include_path . 'lib/dmg/conditional/' . $this->info['stack_name'], $include_path . 'lib/dmg/temp/');
+		} else if (is_dir($include_path . 'lib/dmg/conditional/' . strtolower($this->info['stack_name']))) {
+			$this->rcopy($include_path . 'lib/dmg/conditional/' . strtolower($this->info['stack_name']), $include_path . 'lib/dmg/temp/');
+		}
+		
+		$this->rcopy($this->info['stack_location'], $include_path . 'lib/dmg/temp/' . $this->info['stack_filename']);
+				
+		$icons = array();
+		
+		if (!empty($dmg['icons'])) {
+			foreach ($dmg['icons'] as $key => $icon) {
+				$search  = array(':v:', ':version:', ':stack:', ':lstack:', ':stackfile:',':uid:', ':secret:');
+				$replace = array($this->info['short_version'], $this->info['version'], $this->info['stack_name'], strtolower($this->info['stack_name']), $this->info['stack_filename'], $this->info['stack_uid'], md5($this->info['stack_name'] . $this->config['secret']));
+
+				$icon['path'] = str_ireplace($search, $replace, $icon['path']);
+				
+				if (file_exists($include_path . 'lib/dmg/temp/' . $icon['path'])) {
+					$icons[] = $icon;
+				}
+			}
+		} 
+	
+		$icons = array();
+		
+		$dmg['folder'] = $include_path . 'lib/dmg/temp/';
+		
+		$command = ($this->include_path ? $this->include_path : './') . 'lib/create-dmg --window-pos ' . escapeshellcmd($dmg['window_pos_x']) . ' ' . escapeshellcmd($dmg['window_pos_y']) . ' --window-size ' . escapeshellcmd($dmg['window_width']) . ' ' . escapeshellcmd($dmg['window_height']) . (!empty($dmg['background']) ?  ' --background ' . escapeshellcmd($dmg['background']) : '') . ' --icon-size ' . escapeshellcmd($dmg['icon_size']) . ' --volname "' . escapeshellcmd($dmg['volume_name']) . '"';
+		
+		foreach ($icons as $icon) {
+			$command .= ' --icon "' . escapeshellcmd($icon['path']) . '" ' . escapeshellcmd($icon['pos_x']) . ' ' . escapeshellcmd($icon['pos_y']);
+		}
+		
+		$command .= ' ' . $this->config['output_folder'] . escapeshellcmd($this->info['stack_name']) . '.dmg "' . escapeshellcmd($dmg['folder']) . '"';
+		
+		$success = shell_exec($command);
+				
+		$this->rrmdir($include_path . 'lib/dmg/temp/');
+		
+		if (file_exists($this->config['output_folder'] . $this->info['stack_name'] . '.dmg')) {
+			echo '  -- Done creating DMG.' . "\r\n";
+		} else {
+			echo '  -- ERROR: DMG creation failed.' . "\r\n";
+		}
+		
+		/*
+		shell_exec('osascript ' . $this->include_path . 'DMGCreator.scpt');
+		//http://roobasoft.com/blog/2006/09/22/scripting-filestorm/
+		echo '  -- DMGCreator AppleScript launched.' . "\r\n";
+		*/
+		
+		return $success;
+	}
+	
+	private function rrmdir($dir) {
+		$dir = trim($dir);
+		
+		if (!$dir || $dir == '.' || $dir == '..' || $dir == '/' || substr_count($dir, '/') < 3)  {
+			echo '  -- FAILURE: rrmdir.' . "\r\n";
+			die();
+		}
+		
+   		if (is_dir($dir)) {
+     		$objects = scandir($dir);
+     		foreach ($objects as $object) {
+       			if ($object != '.' && $object != '..') {
+         			if (filetype($dir . '/' . $object) == 'dir') {
+						$this->rrmdir($dir . '/' . $object); 
+					} else {
+						unlink($dir . '/' . $object);
+					}
+       			}
+     		}
+     		reset($objects);
+     		rmdir($dir);
+   		}
+ 	}
+
+	function rcopy($src, $dst, $empty=false) {
+		if ($empty) {
+			$this->rrmdir($dst);
+		}
+		if (is_dir($src)) {
+			if (!is_dir($dst)) {
+				mkdir($dst, 0777, true);
+			}
+			$files = scandir($src);
+		    foreach ($files as $file) {
+				if ($file != '.' && $file != '..') {
+					$this->rcopy($src . '/' . $file, $dst . '/' . $file);
+				}
+			}
+		} else if (file_exists($src)) {
+			copy($src, $dst);
+		}
+	}
+	
 	private function handleDirectoriesAndFiles() {
 		if ($this->config['files_and_directories'] == 'workman-v1') {
 			$this->config['directories'] = array('release_directory' => 'appcasts:api1:/:stack:/', 
 												 'appcast_directory' => 'appcasts:api1:/:stack:/', 
 												 'update_directory'  => 'appcasts:api1:/:stack:/');
 			
-			$this->config['files'] = array('release_file' => ':stack:.html', 
+			$this->config['files'] = array('release_file' => 'notes.html', 
 						 			       'appcast_file' => 'appcast.xml', 
 										   'update_file'  => ':stack:.zip');
 										
@@ -242,7 +460,7 @@ class StackDeployer {
 												 'appcast_directory' => 'appcasts:api2:/:stack:_:secret:/', 
 												 'update_directory'  => 'appcasts:api2:/:stack:_:secret:/');
 												
-			$this->config['files'] = array('release_file' => ':stack:.html', 
+			$this->config['files'] = array('release_file' => 'notes.html', 
 						 			       'appcast_file' => 'appcast.xml', 
 										   'update_file'  => ':stack:.zip');
 		}
@@ -322,42 +540,43 @@ class StackDeployer {
 		$this->info['appcast_file'] = str_replace($search, $replace, $this->config['files']['appcast_file']);
 		$this->info['update_file'] = str_replace($search, $replace, $this->config['files']['update_file']);
 				
-		if (!file_exists($this->info['release_directory'])) {
-			mkdir($this->info['release_directory'], 0777, true);
+		if (!file_exists($this->config['output_folder'] . $this->info['release_directory'])) {
+			$success = mkdir($this->config['output_folder'] . $this->info['release_directory'], 0777, true);
 		}
 		
 		if (!empty($this->info['more_release_directories'])) {
 			foreach ($this->info['more_release_directories'] as $dir) {
-				if (!file_exists($dir)) {
-					mkdir($dir, 0777, true);
+				if (!file_exists($this->config['output_folder'] . $dir)) {
+					mkdir($this->config['output_folder'] . $dir, 0777, true);
 				}
 			}
 		}
-		if (!file_exists($this->info['appcast_directory'])) {
-			mkdir($this->info['appcast_directory'], 0777, true);
+		if (!file_exists($this->config['output_folder'] . $this->info['appcast_directory'])) {
+			mkdir($this->config['output_folder'] . $this->info['appcast_directory'], 0777, true);
 		}
 		if (!empty($this->info['more_appcast_directories'])) {
 			foreach ($this->info['more_appcast_directories'] as $dir) {
-				if (!file_exists($dir)) {
-					mkdir($dir, 0777, true);
+				if (!file_exists($this->config['output_folder'] . $dir)) {
+					mkdir($this->config['output_folder'] . $dir, 0777, true);
 				}
 			}
 		}
-		if (!file_exists($this->info['update_directory'])) {
-			mkdir($this->info['update_directory'], 0777, true);
+		if (!file_exists($this->config['output_folder'] . $this->info['update_directory'])) {
+			mkdir($this->config['output_folder'] . $this->info['update_directory'], 0777, true);
 		}
 		if (!empty($this->info['more_update_directories'])) {
 			foreach ($this->info['more_update_directories'] as $dir) {
-				if (!file_exists($dir)) {
-					mkdir($dir, 0777, true);
+				if (!file_exists($this->config['output_folder'] . $dir)) {
+					mkdir($this->config['output_folder'] . $dir, 0777, true);
 				}
 			}
 		}
 	}
 	
 	private function getInfo($stack) {
-		$this->info['stack_location'] = $stack;
+		$this->info['stack_location']  = $stack;
 		$this->info['stack_directory'] = rtrim(dirname($this->info['stack_location']), '/') . '/';
+		$this->info['stack_filename']  = basename($stack);
 		
 		$contents = file_get_contents($this->info['stack_location'] . '/Contents/Info.plist');
 		
@@ -440,9 +659,7 @@ class StackDeployer {
 		} else {
 			$this->info['stack_uid'] = $this->info['stack_name'];
 		}
-		
-		//$this->info['zip_location'] = str_replace('.stack', '', $this->info['stack_location']) . '.zip';
-			
+					
 		$this->info['pub_date'] = date('D, d M Y H:i:s O');
 		
 		return true;
@@ -451,11 +668,11 @@ class StackDeployer {
 	private function zip() {
 		$zip = new ZipArchive();
 	
-		if (!$zip->open($this->info['update_directory'] . $this->info['update_file'], ZIPARCHIVE::CREATE)) {
+		if (!$zip->open($this->config['output_folder'] . $this->info['update_directory'] . $this->info['update_file'], ZIPARCHIVE::CREATE)) {
 			echo '  -- ERROR: Could not create zip archive ' . $this->info['update_file'] . '.' . "\r\n";
 			return false;
 		}
-		
+				
 		if (!is_dir($this->info['stack_location'])) {
 			echo '  -- ERROR: Seems like the stack ' . $this->info['stack_location'] . ' is not a directory.' . "\r\n";
 			return false;
@@ -482,7 +699,7 @@ class StackDeployer {
 
 		$success = $zip->close();
 		
-		$this->info['update_file_size'] = filesize($this->info['update_directory'] . $this->info['update_file']);
+		$this->info['update_file_size'] = filesize($this->config['output_folder'] . $this->info['update_directory'] . $this->info['update_file']);
 		
 		if (!$this->info['update_file_size']) {
 			echo '  -- Could not determine file size of zipped stack.' . "\r\n";
@@ -491,7 +708,7 @@ class StackDeployer {
 		
 		if (!empty($this->info['more_update_directories'])) {
 			foreach ($this->info['more_update_directories'] as $dir) {
-				copy($this->info['update_directory'] . $this->info['update_file'], $dir . $this->info['update_file']);
+				copy($this->config['output_folder'] . $this->info['update_directory'] . $this->info['update_file'], $dir . $this->info['update_file']);
 			}
 		}
 		
@@ -510,7 +727,7 @@ class StackDeployer {
 			return false;
 		}
 		
-		$this->info['signature'] = trim(shell_exec('openssl dgst -sha1 -binary < "' . $this->info['update_directory'] . $this->info['update_file'] . '" | openssl dgst -dss1 -sign "' . $this->include_path . 'dsa_priv.pem" | openssl enc -base64 | sed s/\\\//\\\\\\\\\\\//g'));
+		$this->info['signature'] = trim(shell_exec('openssl dgst -sha1 -binary < "' . $this->config['output_folder'] . $this->info['update_directory'] . $this->info['update_file'] . '" | openssl dgst -dss1 -sign "' . $this->include_path . 'lib/dsa_priv.pem" | openssl enc -base64 | sed s/\\\//\\\\\\\\\\\//g'));
 		
 		if (!$this->info['signature']) {
 			echo '  -- ERROR: Could not generate stack signature.' . "\r\n";
@@ -546,16 +763,16 @@ class StackDeployer {
 		</rss>';
 	
 		//need to remove first because if switching case the case is not changed..
-		if (file_exists($this->info['appcast_directory'] . $this->info['appcast_file'])) {
-			unlink($this->info['appcast_directory'] . $this->info['appcast_file']);
+		if (file_exists($this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file'])) {
+			unlink($this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file']);
 		}
 		
-		$success = file_put_contents($this->info['appcast_directory'] . $this->info['appcast_file'], $xml);
+		$success = file_put_contents($this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file'], $xml);
 		
 		if ($success) {
 			if (!empty($this->info['more_appcast_directories'])) {
 				foreach ($this->info['more_appcast_directories'] as $dir) {
-					copy($this->info['appcast_directory'] . $this->info['appcast_file'], $dir . $this->info['appcast_file']);
+					copy($this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file'], $dir . $this->info['appcast_file']);
 				}
 			}
 			
@@ -568,16 +785,16 @@ class StackDeployer {
 	}
 	
 	private function createReleaseNotes() {
-		if (file_exists($this->info['release_directory'] . $this->info['release_file'])) {
-			unlink($this->info['release_directory'] . $this->info['release_file']);
+		if (file_exists($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'])) {
+			unlink($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file']);
 		}
 		if (!file_exists($this->info['stack_location'] . '/Contents/Resources/changelog.txt')) {
 			if (file_exists($this->info['stack_directory'] . $this->info['stack_name'] . '.html')) {
-				$success = file_put_contents($this->info['release_directory'] . $this->info['release_file'], file_get_contents($this->info['stack_directory'] . $this->info['stack_name'] . '.html'));
+				$success = file_put_contents($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], file_get_contents($this->info['stack_directory'] . $this->info['stack_name'] . '.html'));
 				if ($success) {
 					if (!empty($this->info['more_release_directories'])) {
 						foreach ($this->info['more_release_directories'] as $dir) {
-							copy($this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
+							copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
 						}
 					}
 					echo '  -- Release notes HTML generated: Copied from ' . $this->info['stack_directory'] . $this->info['stack_name'] . '.html' . "\r\n";
@@ -587,11 +804,11 @@ class StackDeployer {
 					return false;
 				}
 			} else if (file_exists($this->info['stack_location'] . '/Contents/Resources/changelog.html')) {
-				$success = file_put_contents($this->info['release_directory'] . $this->info['release_file'], file_get_contents($this->info['stack_location'] . '/Contents/Resources/changelog.html'));
+				$success = file_put_contents($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], file_get_contents($this->info['stack_location'] . '/Contents/Resources/changelog.html'));
 				if ($success) {
 					if (!empty($this->info['more_release_directories'])) {
 						foreach ($this->info['more_release_directories'] as $dir) {
-							copy($this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
+							copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
 						}
  					}
 					echo '  -- Release notes HTML generated: Copied from ' . $this->info['stack_location'] . '/Contents/Resources/changelog.html' . "\r\n";
@@ -612,12 +829,12 @@ class StackDeployer {
 		if (!$contents) {
 			echo '  -- ERROR: changelog.txt in stack is empty. Cannot create release notes.' . "\r\n";
 			return false;
-		} else if (!file_exists($this->include_path . 'release_notes_template.html')) {
-			echo '  -- ERROR: release_notes_template.html does not exist. This is necessary to generate the HTML file.' . "\r\n";
+		} else if (!file_exists($this->include_path . 'lib/release_notes_template.html')) {
+			echo '  -- ERROR: lib/release_notes_template.html does not exist. This is necessary to generate the HTML file.' . "\r\n";
 			return false;
 		}
 		
-		$template = file_get_contents($this->include_path . 'release_notes_template.html');
+		$template = file_get_contents($this->include_path . 'lib/release_notes_template.html');
 		
 		$template = str_replace(':stack:', $this->info['stack_name'], $template);
 				
@@ -703,12 +920,12 @@ class StackDeployer {
 		
 		$template = str_replace(':changelog:', $html, $template);
 		
-		$success = file_put_contents($this->info['release_directory'] . $this->info['release_file'], $template);
+		$success = file_put_contents($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $template);
 		
 		if ($success) {
 			if (!empty($this->info['more_release_directories'])) {
 				foreach ($this->info['more_release_directories'] as $dir) {
-					copy($this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
+					copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
 				}
 			}
 			echo '  -- Release notes HTML generated: ' . $this->info['release_file'] . "\r\n";
@@ -749,28 +966,28 @@ class StackDeployer {
 		$todo[] = array('source' => $this->info['update_directory'] . $this->info['update_file'], 'destination' => $this->config['ftp']['public_directory'] . $this->info['update_directory'] . $this->info['update_file']);
 		
 		if ($this->config['options']['appcast']) {
-			$todo[] = array('source' => $this->info['appcast_directory'] . $this->info['appcast_file'], 'destination' => $this->config['ftp']['public_directory'] . $this->info['appcast_directory'] . $this->info['appcast_file']);
+			$todo[] = array('source' => $this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file'], 'destination' => $this->config['ftp']['public_directory'] . $this->info['appcast_directory'] . $this->info['appcast_file']);
 		}
 		
 		if ($this->config['options']['releasenotes']) {
-			$todo[] = array('source' => $this->info['release_directory'] . $this->info['release_file'], 'destination' => $this->config['ftp']['public_directory'] . $this->info['release_directory'] . $this->info['release_file']);
+			$todo[] = array('source' => $this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], 'destination' => $this->config['ftp']['public_directory'] . $this->info['release_directory'] . $this->info['release_file']);
 		}
 		
 		if (!empty($this->info['more_update_directories'])) {
 			foreach ($this->info['more_update_directories'] as $dir) {
-				$todo[] = array('source' => $dir . $this->info['update_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['update_file']);
+				$todo[] = array('source' => $this->config['output_folder'] . $dir . $this->info['update_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['update_file']);
 			}
 		}
 		
 		if ($this->config['options']['appcast'] && !empty($this->info['more_appcast_directories'])) {
 			foreach ($this->info['more_appcast_directories'] as $dir) {
-				$todo[] = array('source' => $dir . $this->info['appcast_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['appcast_file']);
+				$todo[] = array('source' => $this->config['output_folder'] . $dir . $this->info['appcast_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['appcast_file']);
 			}
 		}
 		
 		if ($this->config['options']['releasenotes'] && !empty($this->info['more_release_directories'])) {
 			foreach ($this->info['more_release_directories'] as $dir) {
-				$todo[] = array('source' => $dir . $this->info['release_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['release_file']);
+				$todo[] = array('source' => $this->config['output_folder'] . $dir . $this->info['release_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['release_file']);
 			}
 		}
 		
@@ -859,28 +1076,28 @@ class StackDeployer {
 		$todo[] = array('source' => $this->info['update_directory'] . $this->info['update_file'], 'destination' => $this->info['update_directory']);
 		
 		if ($this->config['options']['appcast']) {
-			$todo[] = array('source' => $this->info['appcast_directory'] . $this->info['appcast_file'], 'destination' => $this->info['appcast_directory']);
+			$todo[] = array('source' => $this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file'], 'destination' => $this->info['appcast_directory']);
 		}
 		
 		if ($this->config['options']['releasenotes']) {
-			$todo[] = array('source' => $this->info['release_directory'] . $this->info['release_file'], 'destination' => $this->info['release_directory']);
+			$todo[] = array('source' => $this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], 'destination' => $this->info['release_directory']);
 		}
 		
 		if (!empty($this->info['more_update_directories'])) {
 			foreach ($this->info['more_update_directories'] as $dir) {
-				$todo[] = array('source' => $dir . $this->info['update_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['update_file']);
+				$todo[] = array('source' => $this->config['output_folder'] . $dir . $this->info['update_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['update_file']);
 			}
 		}
 		
 		if ($this->config['options']['appcast'] && !empty($this->info['more_appcast_directories'])) {
 			foreach ($this->info['more_appcast_directories'] as $dir) {
-				$todo[] = array('source' => $dir . $this->info['appcast_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['appcast_file']);
+				$todo[] = array('source' => $this->config['output_folder'] . $dir . $this->info['appcast_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['appcast_file']);
 			}
 		}
 		
 		if ($this->config['options']['releasenotes'] && !empty($this->info['more_release_directories'])) {
 			foreach ($this->info['more_release_directories'] as $dir) {
-				$todo[] = array('source' => $dir . $this->info['release_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['release_file']);
+				$todo[] = array('source' => $this->config['output_folder'] . $dir . $this->info['release_file'], 'destination' => $this->config['ftp']['public_directory'] . $dir . $this->info['release_file']);
 			}
 		}
 
@@ -929,60 +1146,29 @@ class StackDeployer {
 		}
 	}
 	
-	private function purgeLocalCache() {
-		if ($this->config['options']['appcast']) {
-			if (file_exists($this->info['appcast_directory'] . $this->info['appcast_file'])) {
-				unlink($this->info['appcast_directory'] . $this->info['appcast_file']);
-			}
-			if (!empty($this->info['more_appcast_directories'])) {
-				foreach ($this->info['more_appcast_directories'] as $dir) {
-					if (file_exists($dir . $this->info['appcast_file'])) {
-						unlink($dir . $this->info['appcast_file']);
-					}
-				}
-			}
-		}
-		if ($this->config['options']['releasenotes']) {
-			if (file_exists($this->info['release_directory'] . $this->info['release_file'])) {
-				unlink($this->info['release_directory'] . $this->info['release_file']);
-			}
-			if (!empty($this->info['more_release_directories'])) {
-				foreach ($this->info['more_release_directories'] as $dir) {
-					if (file_exists($dir . $this->info['release_file'])) {
-						unlink($dir . $this->info['release_file']);
-					}
-				}
-			}
-		}
-		unlink($this->info['update_directory'] . $this->info['update_file']);
-		
-		if (!empty($this->info['more_update_directories'])) {
-			foreach ($this->info['more_update_directories'] as $dir) {
-				if (file_exists($dir . $this->info['update_file'])) {
-					unlink($dir . $this->info['update_file']);
-				}
-			}
-		}
-		
-		@rmdir($this->info['appcast_directory']);
-		@rmdir($this->info['release_directory']);
-		@rmdir($this->info['update_directory']);
+	private function purgeLocalCache() {	
+		echo 'Purging...';	
+		$this->rrmdir($this->config['output_folder'] . $this->info['appcast_directory']);
 		
 		if (!empty($this->info['more_appcast_directories'])) {
 			foreach ($this->info['more_appcast_directories'] as $dir) {
-				@rmdir($dir);
+				$this->rrmdir($this->config['output_folder'] . $dir);
 			}
 		}
+		
+		$this->rrmdir($this->config['output_folder'] . $this->info['release_directory']);
 		
 		if (!empty($this->info['more_release_directories'])) {
 			foreach ($this->info['more_release_directories'] as $dir) {
-				@rmdir($dir);
+				$this->rrmdir($this->config['output_folder'] . $dir);
 			}
 		}
 		
+		$this->rrmdir($this->config['output_folder'] . $this->info['update_directory']);
+				
 		if (!empty($this->info['more_update_directories'])) {
 			foreach ($this->info['more_update_directories'] as $dir) {
-				@rmdir($dir);
+				$this->rrmdir($this->config['output_folder'] . $dir);
 			}
 		}
 	}
