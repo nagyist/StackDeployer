@@ -704,7 +704,7 @@ class StackDeployer {
 		
 		if (!empty($this->info['more_update_directories'])) {
 			foreach ($this->info['more_update_directories'] as $dir) {
-				copy($this->config['output_folder'] . $this->info['update_directory'] . $this->info['update_file'], $dir . $this->info['update_file']);
+				copy($this->config['output_folder'] . $this->info['update_directory'] . $this->info['update_file'], $this->config['output_folder'] . $dir . $this->info['update_file']);
 			}
 		}
 		
@@ -768,7 +768,7 @@ class StackDeployer {
 		if ($success) {
 			if (!empty($this->info['more_appcast_directories'])) {
 				foreach ($this->info['more_appcast_directories'] as $dir) {
-					copy($this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file'], $dir . $this->info['appcast_file']);
+					copy($this->config['output_folder'] . $this->info['appcast_directory'] . $this->info['appcast_file'], $this->config['output_folder'] . $dir . $this->info['appcast_file']);
 				}
 			}
 			
@@ -790,7 +790,7 @@ class StackDeployer {
 				if ($success) {
 					if (!empty($this->info['more_release_directories'])) {
 						foreach ($this->info['more_release_directories'] as $dir) {
-							copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
+							copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $this->config['output_folder'] . $dir . $this->info['release_file']);
 						}
 					}
 					echo '  -- Release notes HTML generated: Copied from ' . $this->info['stack_directory'] . $this->info['stack_name'] . '.html' . "\r\n";
@@ -804,7 +804,7 @@ class StackDeployer {
 				if ($success) {
 					if (!empty($this->info['more_release_directories'])) {
 						foreach ($this->info['more_release_directories'] as $dir) {
-							copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
+							copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $this->config['output_folder'] . $dir . $this->info['release_file']);
 						}
  					}
 					echo '  -- Release notes HTML generated: Copied from ' . $this->info['stack_location'] . '/Contents/Resources/changelog.html' . "\r\n";
@@ -921,7 +921,7 @@ class StackDeployer {
 		if ($success) {
 			if (!empty($this->info['more_release_directories'])) {
 				foreach ($this->info['more_release_directories'] as $dir) {
-					copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $dir . $this->info['release_file']);
+					copy($this->config['output_folder'] . $this->info['release_directory'] . $this->info['release_file'], $this->config['output_folder'] . $dir . $this->info['release_file']);
 				}
 			}
 			echo '  -- Release notes HTML generated: ' . $this->info['release_file'] . "\r\n";
