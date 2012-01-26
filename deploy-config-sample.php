@@ -23,6 +23,13 @@ You may wish to change this time zone to your own.. For a list, go here: http://
 $config['timezone'] = 'Europe/Brussels';
 
 /*
+The folder where you want appcasts and/or DMGs to go to. Defaults to an "output/" folder in the same directory as deploy.php
+If using a relative path, it will always be relative to the folder where deploy.php is. 
+If you want the files on your desktop, use ~/Desktop/output/ (for example)
+*/
+$config['output_folder'] = 'output/';
+
+/*
 If set to manual, you will have to configure the files and directories manually at the bottom of this file.
 If set to workman-v1, the script will be compatible with the appcast.php from Workman released in October 2011.
 If set to workman-v2, the script will be compatible with the appcast.php from Workman released in January 2012.
@@ -38,13 +45,15 @@ set to your liking:
   - appcast = true will create the appcast XML file
   - releasenotes = true will create the releasenotes HTML file
   - verbose = true will output full file path of each file uploaded.
+  - dmg = create a DMG (filestorm) also
 */	
 $config['options'] = array('upload'       => true, 
 						   'purgecloud'   => false, 
-						   'purgelocal'   => true, 
+						   'purgelocal'   => false, 
 						   'appcast'      => true, 
 						   'releasenotes' => true, 
-						   'verbose'	  => false);
+						   'verbose'	  => false, 
+						   'dmg'	      => true);
 
 /*
 If you have cloudflare, you can have this set up so that it will clear the cloudflare cache after upload. 
@@ -79,6 +88,36 @@ Options are:
 */
 $config['dropbox'] = array('email'    => '', 
  						   'password' => '');
+
+/*
+Automatic DMG creation, fill in your configuration settings below. (Window width/height, position, and so on).
+Icon size can be at moast 128 (pixels).
+For files/folders that need to be at a specific position, add them to the "icons" array.
+You can add icon position even for items that are not in a specific stack DMG. These will just be ignored.
+One special icon is already added to the array, this is the stack file itself. Feel free to change it's positioning.
+Paths are relative to dmg/contents/ (always included in each stack DMG) or dmg/conditional/ (dependent on the stack, make a new folder with the stack name and put files in there)
+
+For example:
+
+dmg/contents/Support.webloc -- This bookmark is always included
+dmg/conditional/StackName/readme.txt -- This readme file is only included in the DMG for the StackName stack.
+
+If adding these files to the icon array, you would set the path to "Support.webloc" and "readme.txt", full paths don't work here.
+
+You can also have multiple DMG configurations. Just add to the DMG array.
+*/
+$config['dmg'] = array();
+
+$config['dmg']['default'] = array('window_width'  => 400, 
+					   			  'window_height' => 400, 
+					   			  'window_pos_x'  => 200, 
+					   			  'window_pos_y'  => 200, 
+					   			  'background'    => 'background.png',
+					 			  'volume_name'   => ':title: Stack',
+					   			  'icon_size'     => 96,   
+					   			  'icons' 		  => array(array('path' => ':stackfile:', 'pos_x' => 200, 'pos_y' => 200)));
+					
+//$config['dmg']['custom'] = array();
 
 /*
 These next settings are only necessary if you set files_and_directories to "manual". 
@@ -149,11 +188,11 @@ Several variables are available:
 - :version: - The long version nr of the stack
 
 If you're using Joe Workman's appcast.php, you may want to set this to the following:
-- release_file = :stack:.html
+- release_file = notes.html
 - appcast_file = appcast.xml
 - update_file  = :stack:.zip
 */
-$config['files'] = array('release_file' => ':stack:.html', 
+$config['files'] = array('release_file' => 'notes.html', 
 					     'appcast_file' => 'appcast.xml', 
 					     'update_file'  => ':stack:.zip');
 
