@@ -31,7 +31,7 @@ class StackDeployer {
 		$this->include_path = rtrim($this->include_path, '/') . '/';
 				
 		if (!file_exists($this->include_path . 'lib/deploy-config.php')) {
-			echo '  -- ERROR: Please configure this script first. Open ' . $this->include_path . 'lib/deploy-config-sample.php and follow instructions. Rename to deploy-config.php once done.' . "\r\n";
+			echo '  -- ERROR: Please configure this script first. Open "' . $this->include_path . 'lib/deploy-config-sample.php" and follow instructions. Rename to deploy-config.php once done.' . "\r\n";
 			die();
 		}
 		
@@ -40,7 +40,7 @@ class StackDeployer {
 		$this->config = $config;
 		
 		if (!file_exists($this->include_path . 'lib/dsa_priv.pem')) {
-			echo '  -- ERROR: dsa_priv.pem not found. Please add this to the "StackDeployer/lib" folder. Aborting.' . "\r\n";
+			echo '  -- ERROR: dsa_priv.pem not found. Please add this to the "' . $this->include_path . '/lib" folder. Aborting.' . "\r\n";
 			die();
 		}
 		
