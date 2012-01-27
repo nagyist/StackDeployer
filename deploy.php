@@ -371,16 +371,21 @@ class StackDeployer {
 			
 		$dmg['folder'] = $include_path . 'lib/dmg/temp/';
 		
-		$command = ($this->include_path ? $this->include_path : './') . 'lib/create-dmg --window-pos ' . escapeshellcmd($dmg['window_pos_x']) . ' ' . escapeshellcmd($dmg['window_pos_y']) . ' --window-size ' . escapeshellcmd($dmg['window_width']) . ' ' . escapeshellcmd($dmg['window_height']) . (!empty($dmg['background']) ?  ' --background ' . escapeshellcmd($dmg['background']) : '') . ' --icon-size ' . escapeshellcmd($dmg['icon_size']) . ' --volname "' . escapeshellcmd($dmg['volume_name']) . '"';
+		if ($this->config['dmg_format'] == 'default') {
+				$command = ($this->include_path ? $this->include_path : './') . 'lib/create-dmg --window-pos ' . escapeshellcmd($dmg['window_pos_x']) . ' ' . escapeshellcmd($dmg['window_pos_y']) . ' --window-size ' . escapeshellcmd($dmg['window_width']) . ' ' . escapeshellcmd($dmg['window_height']) . (!empty($dmg['background']) ?  ' --background ' . escapeshellcmd($dmg['background']) : '') . ' --icon-size ' . escapeshellcmd($dmg['icon_size']) . ' --volname "' . escapeshellcmd($dmg['volume_name']) . '"';
 		
-		foreach ($icons as $icon) {
-			$command .= ' --icon "' . escapeshellcmd($icon['path']) . '" ' . escapeshellcmd($icon['pos_x']) . ' ' . escapeshellcmd($icon['pos_y']);
+				foreach ($icons as $icon) {
+					$command .= ' --icon "' . escapeshellcmd($icon['path']) . '" ' . escapeshellcmd($icon['pos_x']) . ' ' . escapeshellcmd($icon['pos_y']);
+				}
+		
+				$command .= ' ' . $this->config['output_folder'] . escapeshellcmd($this->info['stack_name']) . '.dmg "' . escapeshellcmd($dmg['folder']) . '"';
+		
+				$success = shell_exec($command);
+		} else {
+			shell_exec('osascript ' . $this->include_path . 'DMGCreator.scpt');
+			//http://roobasoft.com/blog/2006/09/22/scripting-filestorm/
 		}
-		
-		$command .= ' ' . $this->config['output_folder'] . escapeshellcmd($this->info['stack_name']) . '.dmg "' . escapeshellcmd($dmg['folder']) . '"';
-		
-		$success = shell_exec($command);
-				
+			
 		$this->rrmdir($include_path . 'lib/dmg/temp/');
 		
 		if (file_exists($this->config['output_folder'] . $this->info['stack_name'] . '.dmg')) {
@@ -388,12 +393,6 @@ class StackDeployer {
 		} else {
 			echo '  -- ERROR: DMG creation failed.' . "\r\n";
 		}
-		
-		/*
-		shell_exec('osascript ' . $this->include_path . 'DMGCreator.scpt');
-		//http://roobasoft.com/blog/2006/09/22/scripting-filestorm/
-		echo '  -- DMGCreator AppleScript launched.' . "\r\n";
-		*/
 		
 		return $success;
 	}
