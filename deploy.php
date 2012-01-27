@@ -63,7 +63,7 @@ class StackDeployer {
 		
 		$stacks = array();
 		
-		$options = getopt('f:d:o:g:iv', array('noupload', 'nopurgecloud', 'nopurgelocal', 'noappcast', 'noreleasenotes', 'nodmg'));
+		$options = getopt('f:d:o:g:iv', array('noupload', 'nopurgecloud', 'nopurgelocal', 'noappcast', 'noreleasenotes', 'nodmg', 'onlydmg'));
 
 		if (!empty($options['f'])) {
 			if (preg_match('/\.stack/i', $options['f'])) {
@@ -150,6 +150,10 @@ class StackDeployer {
 			$this->config['options']['dmg'] = false;
 		}
 		
+		if (isset($options['onlydmg'])) {
+			$this->config['options']['dmg']     = true;
+			$this->config['options']['appcast'] = false;
+		}
 		if (!empty($options['g'])) {
 			$this->config['options']['dmg'] = true;
 			$this->config['options']['dmg_group'] = trim($options['g']);
@@ -211,46 +215,48 @@ class StackDeployer {
 		echo '* Deploying stack "' . $stack . '"...' . "\r\n";
 					
 		if ($this->getInfo($stack)) {
-			$this->handleDirectoriesAndFiles();
-			
-			if (!$this->zip()) {
-				return false;
-			}
-
-			$this->sign();
-			
-			if ($this->config['options']['appcast']) {
-				$this->createAppcastXML();
-			}
-			
-			if ($this->config['options']['releasenotes']) {
-				$this->createReleaseNotes();
-			}
-			
 			$success = true;
 			
-			if ($this->config['options']['upload']) {
-				$has_ftp = !empty($this->config['ftp']) && !empty($this->config['ftp']['server']) && !empty($this->config['ftp']['username']) && !empty($this->config['ftp']['password']);
-				$has_dropbox = !empty($this->config['dropbox']) && !empty($this->config['dropbox']['email']) && !empty($this->config['dropbox']['password']);
-				
-				if ($has_ftp) {
-					$success = $this->uploadFTP(); 
-				}
-				if ($has_dropbox) {
-					$success = $this->uploadDropbox();
-				} 
-				if (!$has_ftp && !$has_dropbox) {
-					echo '  -- ERROR: Please add your FTP or dropbox credentials to the config file (deploy-config.php).' . "\r\n";
-					$this->config['options']['purgelocal'] = false;
-					$success = false;
-				}
-			}
+			$this->handleDirectoriesAndFiles();
 			
-			if ($success && $this->config['options']['purgecloud']) {
-				if (!empty($this->cloudflare)) {
-					$this->purgeCloudflareCache();
-				} else {
-					echo '  -- ERROR: Please add your cloudflare settings to the config file (deploy-config.php).' . "\r\n";
+			if ($this->config['options']['appcast']) {
+				if (!$this->zip()) {
+					return false;
+				}
+
+				$this->sign();
+			
+				if ($this->config['options']['appcast']) {
+					$this->createAppcastXML();
+				}
+			
+				if ($this->config['options']['releasenotes']) {
+					$this->createReleaseNotes();
+				}
+						
+				if ($this->config['options']['upload']) {
+					$has_ftp = !empty($this->config['ftp']) && !empty($this->config['ftp']['server']) && !empty($this->config['ftp']['username']) && !empty($this->config['ftp']['password']);
+					$has_dropbox = !empty($this->config['dropbox']) && !empty($this->config['dropbox']['email']) && !empty($this->config['dropbox']['password']);
+				
+					if ($has_ftp) {
+						$success = $this->uploadFTP(); 
+					}
+					if ($has_dropbox) {
+						$success = $this->uploadDropbox();
+					} 
+					if (!$has_ftp && !$has_dropbox) {
+						echo '  -- ERROR: Please add your FTP or dropbox credentials to the config file (deploy-config.php).' . "\r\n";
+						$this->config['options']['purgelocal'] = false;
+						$success = false;
+					}
+				}
+			
+				if ($success && $this->config['options']['purgecloud']) {
+					if (!empty($this->cloudflare)) {
+						$this->purgeCloudflareCache();
+					} else {
+						echo '  -- ERROR: Please add your cloudflare settings to the config file (deploy-config.php).' . "\r\n";
+					}
 				}
 			}
 			
@@ -654,6 +660,14 @@ class StackDeployer {
 	}
 	
 	private function handleDirectoriesAndFiles() {
+		if (!file_exists($this->config['output_folder'])) {
+			$success = mkdir($this->config['output_folder'], 0777, true);
+		}
+		
+		if (!$this->config['appcast']) {
+			return;
+		}
+		
 		if ($this->config['files_and_directories'] == 'workman-v1') {
 			$this->config['directories'] = array('release_directory' => 'appcasts:api1:/:stack:/', 
 												 'appcast_directory' => 'appcasts:api1:/:stack:/', 
