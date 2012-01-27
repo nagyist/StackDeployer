@@ -1,1 +1,8 @@
 .DS_Store
+deploy-config.php
+dsa_priv.pem
+output/*
+lib/dmg/always/installer/*
+lib/dmg/always/*
+lib/dmg/conditional/*
+lib/dmg/temp/*
