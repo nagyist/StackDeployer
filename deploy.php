@@ -424,7 +424,7 @@ class StackDeployer {
 			$script = '<<-EOF
 				tell application "FileStorm"
 					activate
-					make new document at before first document with properties {volume name:"' . $dmg['volume_name'] . '", disk image name:"' . $this->config['output_folder'] . $this->info['stack_name'] . '.dmg", width:' . $dmg['window_width'] . ', height:' . $dmg['window_height'] . ', window left position:' . $dmg['window_pos_x'] . ', window top position:' . $dmg['window_pos_y'] . ', background image path:"' . $dmg['background'] . '", icon size:' . $dmg['icon_size'] . ', open volume:true}
+					make new document at before first document with properties {volume name:"' . $dmg['volume_name'] . '", disk image name:"' . $this->config['output_folder'] . $this->info['stack_name'] . '.dmg", width:' . $dmg['window_width'] . ', height:' . $dmg['window_height'] . ', window left position:' . $dmg['window_pos_x'] . ', window top position:' . $dmg['window_pos_y'] . (!empty($dmg['background']) ? ', background image path:"' . $dmg['background'] . '"' : '') . ', icon size:' . $dmg['icon_size'] . ', open volume:true}
 
 					tell first document
 					';
@@ -436,7 +436,7 @@ class StackDeployer {
 			//add all other files that weren't specified in the icons array..
 			if ($handle = opendir($include_path . 'lib/dmg/temp/')) {
 			    while (false !== ($entry = readdir($handle))) {
-			        if ($entry != '.' && $entry != '..' && $entry[0] != '.' && $entry[0] != 'installer') {
+			        if ($entry != '.' && $entry != '..' && $entry[0] != '.' && strtolower($entry) != 'installer') {
 						$already_included = false;
 						
 						foreach ($icons as $icon) {
@@ -479,7 +479,7 @@ class StackDeployer {
 			}
 
 			if (!empty($dmg['installer'])) {
-				$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer", custom icon path:"' . $dmg['installer_icon'] . '", background path:"' . $dmg['installer_background'] . '"' . (!empty($dmg['pos_x']) ? ', left position:' . $dmg['pos_x'] . ', top position: ' . $dmg['pos_y'] : '') . '}' . "\r\n";
+				$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer"' . (!empty($dmg['installer_icon']) ? ', custom icon path:"' . $dmg['installer_icon'] . '"' : '') . (!empty($dmg['installer_background']) ? ', background path:"' . $dmg['installer_background'] . '"' : '') . (!empty($dmg['pos_x']) ? ', left position:' . $dmg['pos_x'] . ', top position: ' . $dmg['pos_y'] : '') . '}' . "\r\n";
 				
 				$script .= 'tell first installer' . "\r\n";
 				foreach ($dmg['installer']['files'] as $file) {
@@ -513,16 +513,7 @@ class StackDeployer {
 				write "--DONE--" to file trackerFile
 				close access file trackerFile
 			EOF';
-						
-			
-			/*
-			installer/readme.txt
-			installer/readme.html
-			installer/license.txt
-			installer/script.sh
-			*/	
-					
-			echo $script;
+								
 			/*
 			--exit script parameter (text) : This is the parameter to be passed to the shell script that gets run when the installer exits.
 			-- exit script path (text) : This is the path to the shell script to be run when the installer exits.
@@ -592,13 +583,13 @@ class StackDeployer {
 					$lowercase = strtolower($entry);
 						
 					if ($lowercase == 'readme.txt') {
-						$file['type'] = 1; //README TXT
+						$file['type'] = 0; //README TXT
 					} else if ($lowercase == 'readme.html') {
-						$file['type'] = 2; 
+						$file['type'] = 0; 
 					} else if ($lowercase == 'license.txt') {
-						$file['type'] = 3;
+						$file['type'] = 0;
 					} else if (preg_match('/\.sh/i', $lowercase)) {
-						$file['type'] = 4;
+						$file['type'] = 0;
 					} else if (preg_match('\/.stack/i', $lowercase)) {
 						$file['type'] = 0;
 						$file['install_path'] = '~/Library/Application Support/RapidWeaver/Stacks/';
