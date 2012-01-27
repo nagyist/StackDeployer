@@ -282,6 +282,12 @@ class StackDeployer {
 		
 		$dmg = $this->config['dmg'][$group];
 		
+		if (empty($this->config['dmg_format']) || $this->config['dmg_format'] == 'default') {
+			$dmg['format'] = 'default';
+		} else {
+			$dmg['format'] = 'filestorm';
+		}
+		
 		if (empty($dmg['window_width'])) {
 			$dmg['window_width']  = 400;
 		}
@@ -298,38 +304,8 @@ class StackDeployer {
 			$dmg['window_pos_y'] = 200;
 		}
 		
-		if (!empty($dmg['background'])) {
-			if (file_exists($include_path . 'lib/dmg/' . $dmg['background'])) {
-				$dmg['background'] = $include_path . 'lib/dmg/' . $dmg['background'];
-			} else {
-				$dmg['background'] = '';
-			}
-		} else {
-			$dmg['background'] = '';
-		}
-		
 		if (empty($dmg['icon_size'])) {
 			$dmg['icon_size'] = 128;
-		}
-		
-		if (!empty($dmg['installer_background'])) {
-			if (file_exists($include_path . 'lib/dmg/' . $dmg['installer_background'])) {
-				$dmg['installer_background'] = $include_path . 'lib/dmg/' . $dmg['installer_background'];
-			} else {
-				$dmg['installer_background'] = '';
-			}
-		} else {
-			$dmg['installer_icon'] = '';
-		}
-		
-		if (!empty($dmg['installer_icon'])) {
-			if (file_exists($include_path . 'lib/dmg/' . $dmg['installer_icon'])) {
-				$dmg['installer_icon'] = $include_path . 'lib/dmg/' . $dmg['installer_icon'];
-			} else {
-				$dmg['installer_icon'] = '';
-			}
-		} else {
-			$dmg['installer_icon'] = '';
 		}
 		 
 		$search  = array(':v:', ':version:', ':stack:', ':lstack:', ':stackfile:', ':title:');
@@ -371,17 +347,48 @@ class StackDeployer {
 		}
 				
 		if (is_dir($include_path . 'lib/dmg/always/')) {
-			$this->rcopy($include_path . 'lib/dmg/always/', $include_path . 'lib/dmg/temp/');
+			$this->rcopy($include_path . 'lib/dmg/always/', $include_path . 'lib/dmg/temp/contents/');
 		}
 				
 		if (is_dir($include_path . 'lib/dmg/conditional/' . $this->info['stack_name'])) {
-			$this->rcopy($include_path . 'lib/dmg/conditional/' . $this->info['stack_name'], $include_path . 'lib/dmg/temp/');
+			$this->rcopy($include_path . 'lib/dmg/conditional/' . $this->info['stack_name'], $include_path . 'lib/dmg/temp/contents/');
 		} else if (is_dir($include_path . 'lib/dmg/conditional/' . strtolower($this->info['stack_name']))) {
-			$this->rcopy($include_path . 'lib/dmg/conditional/' . strtolower($this->info['stack_name']), $include_path . 'lib/dmg/temp/');
+			$this->rcopy($include_path . 'lib/dmg/conditional/' . strtolower($this->info['stack_name']), $include_path . 'lib/dmg/temp/contents/');
 		}
 		
-		$this->rcopy($this->info['stack_location'], $include_path . 'lib/dmg/temp/' . $this->info['stack_filename']);
-				
+		if (is_dir($include_path . 'lib/dmg/temp/contents/installer/')) {
+			rename($include_path . 'lib/dmg/temp/contents/installer/', $include_path . 'lib/dmg/temp/installer/');
+		} else {
+			mkdir($include_path . 'lib/dmg/temp/installer/', 0777, true);
+		}
+		if (is_dir($include_path . 'lib/dmg/temp/contents/extras/')) {
+			rename($include_path . 'lib/dmg/temp/contents/extras/', $include_path . 'lib/dmg/temp/extras/');
+		} else {
+			mkdir($include_path . 'lib/dmg/temp/extras/', 0777, true);
+		}
+		
+		if ($dmg['format'] == 'default') {		
+			$this->rcopy($this->info['stack_location'], $include_path . 'lib/dmg/temp/contents/' . $this->info['stack_filename']);
+		} else {
+			$this->rcopy($this->info['stack_location'], $include_path . 'lib/dmg/temp/installer/' . $this->info['stack_filename']);
+		}
+		
+		$extras = array('background', 'installer_background', 'installer_icon', 'license_agreement');
+		
+		foreach ($extras as $extra) {
+			if (!empty($dmg[$extra])) {
+				if ($dmg[$extra][0] == '/' || $dmg[$extra][0] == '~') {
+					if (!file_exists($dmg[$extra])) {
+						$dmg[$extra] = '';
+					}
+				} else if (file_exists($include_path . 'lib/dmg/temp/extras/' . $dmg[$extra])) {
+					$dmg[$extra] = $include_path . 'lib/dmg/temp/extras/' . $dmg[$extra];
+				}
+			} else {
+				$dmg[$extra] = '';
+			}
+		}
+		
 		$icons = array();
 		
 		if (!empty($dmg['icons'])) {
@@ -391,24 +398,22 @@ class StackDeployer {
 
 				$icon['path'] = str_ireplace($search, $replace, $icon['path']);
 				
-				if (file_exists($include_path . 'lib/dmg/temp/' . $icon['path'])) {
+				if (file_exists($include_path . 'lib/dmg/temp/contents/' . $icon['path'])) {
 					$icons[] = $icon;
 				}
 			}
 		} 
-			
-		$dmg['folder'] = $include_path . 'lib/dmg/temp/';
-				
-		if (empty($this->config['dmg_format']) || $this->config['dmg_format'] == 'default') {
-				$command = ($this->include_path ? $this->include_path : './') . 'lib/create-dmg --window-pos ' . escapeshellcmd($dmg['window_pos_x']) . ' ' . escapeshellcmd($dmg['window_pos_y']) . ' --window-size ' . escapeshellcmd($dmg['window_width']) . ' ' . escapeshellcmd($dmg['window_height']) . (!empty($dmg['background']) ?  ' --background ' . escapeshellcmd($dmg['background']) : '') . ' --icon-size ' . escapeshellcmd($dmg['icon_size']) . ' --volname "' . escapeshellcmd($dmg['volume_name']) . '"';
+							
+		if ($dmg['format'] == 'default') {
+			$command = ($this->include_path ? $this->include_path : './') . 'lib/create-dmg --window-pos ' . escapeshellcmd($dmg['window_pos_x']) . ' ' . escapeshellcmd($dmg['window_pos_y']) . ' --window-size ' . escapeshellcmd($dmg['window_width']) . ' ' . escapeshellcmd($dmg['window_height']) . (!empty($dmg['background']) ?  ' --background ' . escapeshellcmd($dmg['background']) : '') . ' --icon-size ' . escapeshellcmd($dmg['icon_size']) . ' --volname "' . escapeshellcmd($dmg['volume_name']) . '"';
 		
-				foreach ($icons as $icon) {
-					$command .= ' --icon "' . escapeshellcmd($icon['path']) . '" ' . escapeshellcmd($icon['pos_x']) . ' ' . escapeshellcmd($icon['pos_y']);
-				}
+			foreach ($icons as $icon) {
+				$command .= ' --icon "' . escapeshellcmd($icon['path']) . '" ' . escapeshellcmd($icon['pos_x']) . ' ' . escapeshellcmd($icon['pos_y']);
+			}
 		
-				$command .= ' ' . $this->config['output_folder'] . escapeshellcmd($this->info['stack_name']) . '.dmg "' . escapeshellcmd($dmg['folder']) . '"';
+			$command .= ' ' . $this->config['output_folder'] . escapeshellcmd($this->info['stack_name']) . '.dmg "' . escapeshellcmd($include_path . 'lib/dmg/temp/contents/') . '"';
 		
-				$success = shell_exec($command);
+			$success = shell_exec($command);
 		} else {
 			/*
 			-- set windowPosX to ' . $dmg['window_pos_x'] . '
@@ -434,9 +439,9 @@ class StackDeployer {
 			}
 			
 			//add all other files that weren't specified in the icons array..
-			if ($handle = opendir($include_path . 'lib/dmg/temp/')) {
+			if ($handle = opendir($include_path . 'lib/dmg/temp/contents/')) {
 			    while (false !== ($entry = readdir($handle))) {
-			        if ($entry != '.' && $entry != '..' && $entry[0] != '.' && strtolower($entry) != 'installer') {
+			        if ($entry != '.' && $entry != '..' && $entry[0] != '.' && strtolower($entry) != 'installer' && strtolower($entry) != 'extras') {
 						$already_included = false;
 						
 						foreach ($icons as $icon) {
@@ -447,35 +452,48 @@ class StackDeployer {
 						}
 						
 						if (!$already_included) {
-							$script .= 'make new file at before first file with properties {file path:"' . $include_path . 'lib/dmg/temp/' . $entry . '"}' . "\r\n";
+							$script .= 'make new file at before first file with properties {file path:"' . $include_path . 'lib/dmg/temp/contents/' . $entry . '"}' . "\r\n";
 						}
 			        }
 			    }
 			    closedir($handle);
 			}
 			
-			$dmg['installer']['files'] = $this->processInstallerFiles($include_path . 'lib/dmg/temp/installer/');
+			$dmg['installer']['files'] = array();
 			
-			/*			
-			$installer_always      = $this->processInstallerFiles($include_path . 'lib/dmg/always/installer/');
-			$installer_conditional = $this->processInstallerFiles($include_path . 'lib/dmg/conditional/' . $this->info['stack_name'] . '/installer/');
-			
-			foreach ($installer_conditional as $conditional) {
-				foreach ($installer_always as $key => $always) {
-					if ($conditional['filename'] == $always['filename']) {
-						unset($installer_always[$key]);
-					}
+			if (is_dir($include_path . 'lib/dmg/temp/contents/installer/')) {
+				if ($handle = opendir($dir)) {
+			    	while (false !== ($entry = readdir($handle))) {
+			        	if ($entry != '.' && $entry != '..' && $entry[0] != '.') {						
+							$file = array('filename' => $entry, 'path' => $dir . $entry);
+
+							$lowercase = strtolower($entry);
+
+							if ($lowercase == 'readme.txt') {
+								$file['type'] = 0; //README TXT
+							} else if ($lowercase == 'readme.html') {
+								$file['type'] = 0; 
+							} else if ($lowercase == 'license.txt') {
+								$file['type'] = 0;
+							} else if (preg_match('/\.sh/i', $lowercase)) {
+								$file['type'] = 0;
+							} else if (preg_match('\/.stack/i', $lowercase)) {
+								$file['type'] = 0;
+								$file['install_path'] = '~/Library/Application Support/RapidWeaver/Stacks/';
+							} else {
+								echo '  -- ERROR: Unknown file: "' . $entry . '" - Ignoring.' . "\r\n";
+								continue;
+							}
+
+							$dmg['installer']['files'][] = $file;
+				    	}
+					}	
+					closedir($handle);
 				}
 			}
-			
-			$dmg['installer']['files'] = $installer_always + $installer_conditional;
-			
-			unset($installer_always);
-			unset($installer_conditional);
-				*/
-			
-			if (!empty($dmg['license'])) {
-				$script .= 'make new license agreement at before first license agreement with properties {language:"English", text file path:"' . $include_path . 'lib/dmg/temp/' . $dmg['license'] . '"}' . "\r\n";
+						
+			if (!empty($dmg['license_agreement'])) {
+				$script .= 'make new license agreement at before first license agreement with properties {language:"English", text file path:"' . $dmg['license_agreement'] . '"}' . "\r\n";
 			}
 
 			if (!empty($dmg['installer'])) {
@@ -566,45 +584,6 @@ class StackDeployer {
 		}
 		
 		return $success;
-	}
-	
-	private function processInstallerFiles($dir) {
-		if (!is_dir($dir)) {
-			return array();
-		}
-		
-		$files = array();
-		
-		if ($handle = opendir($dir)) {
-		    while (false !== ($entry = readdir($handle))) {
-		        if ($entry != '.' && $entry != '..' && $entry[0] != '.') {						
-					$file = array('filename' => $entry, 'path' => $dir . $entry);
-						
-					$lowercase = strtolower($entry);
-						
-					if ($lowercase == 'readme.txt') {
-						$file['type'] = 0; //README TXT
-					} else if ($lowercase == 'readme.html') {
-						$file['type'] = 0; 
-					} else if ($lowercase == 'license.txt') {
-						$file['type'] = 0;
-					} else if (preg_match('/\.sh/i', $lowercase)) {
-						$file['type'] = 0;
-					} else if (preg_match('\/.stack/i', $lowercase)) {
-						$file['type'] = 0;
-						$file['install_path'] = '~/Library/Application Support/RapidWeaver/Stacks/';
-					} else {
-						echo '  -- ERROR: Unknown file: "' . $entry . '" - Ignoring.' . "\r\n";
-						continue;
-					}
-						
-					$files[] = $file;
-			    }
-			}
-			closedir($handle);
-		}
-		
-		return $files;
 	}
 	
 	private function rrmdir($dir) {
