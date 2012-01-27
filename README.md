@@ -124,9 +124,15 @@ Now, you'll be able to access the StackDeployer simply by typing "deploy" in the
 
 ## DMG Creation
 
-This script can optionally create DMG files of your updates too. For the moment a simple DMG, but Filestorm support (with installer) is planned for the next update.
+This script can optionally create DMG files of your updates too. 
 
-Set your options in the config file. You can specify the width/height, position, background image and so on.
+You have two options; 
+
+- a simple DMG - You can specify width/height, position, background image and so on. 
+
+- A DMG with installer. This will, for example, automatically place the stacks in the correct rapidweaver library folder. This does however, require filestorm (http://www.mindvision.com/filestorm.asp).
+
+To configure, set your options in the config file dmg array.
 
 If you have files that need to be included aside from the stack, add them to:
 
@@ -141,6 +147,32 @@ Add subfolders for each stack. The files in the folder that matches the stack fi
 	TestName.stack
 
 	lib/dmg/conditional/TestName/readme.txt
+	
+Exclusive to the filestorm DMG creation, you can place files that need to be installed in the following folders: 
+
+	lib/dmg/always/installer/
+	
+	lib/dmg/conditional/TestName/installer/
+	
+There are some special filenames for files placed in the installer directory: 
+
+	license.txt
+	
+This will be shown before installation starts. The user has to accept before he can continue installation.
+
+	readme.txt / readme.html
+
+This text file will be shown after the installation has happened.
+
+	*.sh
+	
+These shell scripts will be executed after the installation has happened.
+
+	*.stack
+	
+These stacks will also be installed.
+
+All other files are ignored, unless they are specified in the configuration file under $options['dmg']['installer_files'].
 	
 ## AppleScript
 
