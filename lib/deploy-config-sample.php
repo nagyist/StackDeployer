@@ -38,6 +38,7 @@ $config['files_and_directories'] = 'workman-v1';
 
 /*
 set to your liking:
+  - appcast = true will create the necessary appcast files (xml, release notes, zipped stack)
   - upload = true will upload via FTP
   - purgecloud = true will clear your cloudflare cache (if you have it)
   - purgelocal = true will delete the locally generated files
@@ -47,7 +48,8 @@ set to your liking:
   - verbose = true will output full file path of each file uploaded.
   - dmg = create a DMG (filestorm) also
 */	
-$config['options'] = array('upload'       => true, 
+$config['options'] = array('appcast'	  => true,
+						   'upload'       => true, 
 						   'purgecloud'   => false, 
 						   'purgelocal'   => false, 
 						   'appcast'      => true, 
@@ -106,17 +108,45 @@ If adding these files to the icon array, you would set the path to "Support.webl
 
 You can also have multiple DMG configurations. Just add to the DMG array.
 */
+
 $config['dmg'] = array();
 
-$config['dmg']['default'] = array('window_width'  => 400, 
-					   			  'window_height' => 400, 
-					   			  'window_pos_x'  => 200, 
-					   			  'window_pos_y'  => 200, 
-					   			  'background'    => 'background.png',
-					 			  'volume_name'   => ':title: Stack',
-					   			  'icon_size'     => 96,   
-					   			  'icons' 		  => array(array('path' => ':stackfile:', 'pos_x' => 200, 'pos_y' => 200)));
-					
+$config['dmg']['default'] = array('format'				 => 'default',
+								  'window_width' 		 => 400, 
+					   			  'window_height'	     => 400, 
+					   			  'window_pos_x' 		 => 200, 
+					   			  'window_pos_y'  	   	 => 200, 
+								  //background goes in lib/always/extras or lib/conditional/*/extras/  - if file is in both locations, the conditional one will overwrite.
+					   			  'background'    		 => 'background.png',
+					 			  'volume_name'   		 => ':title: Stack',
+					   			  'icon_size'     		 => 96,   
+								  //Add files to the icons array that need special positioning. If the file does not need to be positioned, you need not place it in the array. It will be added automatically.
+					   			  'icons' 				 => array(array('path' => ':stackfile:', 'pos_x' => 120, 'pos_y' => 120)));
+	
+/*
+Filestorm has extra configuration settings for the installer, and a license agreement upon mounting the DMG.
+To call this you need to add "-g advanced" to the command line.
+*/
+$config['dmg']['advanced'] = array('format'				 => 'filestorm',
+								   'window_width' 		 => 400, 
+					   			   'window_height'	     => 400, 
+					   			   'window_pos_x' 		 => 200, 
+					   			   'window_pos_y'  	   	 => 200, 
+								   //background goes in lib/always/extras or lib/conditional/*/extras/ - if file is in both locations, the conditional one will overwrite.
+					   			   'background'    		 => 'background.png',
+					 			   'volume_name'   		 => ':title: Stack',
+					   			   'icon_size'     		 => 96,   
+								   //Add files to the icons array that need special positioning. If the file does not need to be positioned, you need not place it in the array. It will be added automatically.
+					   			   'icons' 				 => array(array('path' => ':stackfile:', 'pos_x' => 120, 'pos_y' => 120)),
+								   'installer_title' 	 => ':title: Stack Installation',
+								   //installer icon goes in lib/always/extras or lib/conditional/*/extras/ - if file is in both locations, the conditional one will overwrite.
+					 			   'installer_icon' 	 => 'icon.png', 
+								   //installer background goes in lib/always/extras or lib/conditional/*/extras/ - if file is in both locations, the conditional one will overwrite.
+					 			   'installer_background' => 'installer_background.png', 
+								   'installer_files'	  => array(),
+								    //license agreement goes in lib/always/extras or lib/conditional/*/extras/ - if file is in both locations, the conditional one will overwrite.
+								   'license_agreement' 	 => 'license.txt');
+
 //$config['dmg']['custom'] = array();
 
 /*

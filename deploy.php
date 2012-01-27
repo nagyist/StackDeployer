@@ -288,6 +288,20 @@ class StackDeployer {
 			$dmg['format'] = 'filestorm';
 		}
 		
+		if (empty($dmg['format'])) {
+			$dmg['format'] = 'default';
+		} else {
+			$dmg['format'] = strtolower($dmg['format']);
+			
+			if ($dmg['format'] != 'default' && $dmg['format'] != 'filestorm') {
+				if (isset($dmg['installer_title']) || isset($dmg['installer_files'])) {
+					$dmg['format'] = 'filestorm';
+				} else {
+					$dmg['format'] = 'default';
+				}
+			}
+		}
+		
 		if (empty($dmg['window_width'])) {
 			$dmg['window_width']  = 400;
 		}
@@ -383,12 +397,14 @@ class StackDeployer {
 					}
 				} else if (file_exists($include_path . 'lib/dmg/temp/extras/' . $dmg[$extra])) {
 					$dmg[$extra] = $include_path . 'lib/dmg/temp/extras/' . $dmg[$extra];
+				} else {
+					$dmg[$extra] = '';
 				}
 			} else {
 				$dmg[$extra] = '';
 			}
 		}
-		
+				
 		$icons = array();
 		
 		if (!empty($dmg['icons'])) {
