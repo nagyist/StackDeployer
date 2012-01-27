@@ -157,7 +157,7 @@ class StackDeployer {
 		if (!empty($options['g'])) {
 			$this->config['options']['dmg'] = true;
 			$this->config['options']['dmg_group'] = trim($options['g']);
-		} else {
+		} else if (empty($this->config['options']['dmg_group'])) {
 			$this->config['options']['dmg_group'] = 'default';
 		}
 				
@@ -282,10 +282,14 @@ class StackDeployer {
 		
 		$dmg = $this->config['dmg'][$group];
 		
-		if (empty($this->config['dmg_format']) || $this->config['dmg_format'] == 'default') {
+		if (empty($dmg['format'])) {
 			$dmg['format'] = 'default';
-		} else {
-			$dmg['format'] = 'filestorm';
+		}
+		
+		$dmg['format'] = strtolower($dmg['format']);
+		
+		if ($dmg['format'] != 'default' && $dmg['format'] != 'filestorm') {
+			$dmg['format'] = 'default';
 		}
 		
 		if (empty($dmg['format'])) {
@@ -416,6 +420,9 @@ class StackDeployer {
 				
 				if (file_exists($include_path . 'lib/dmg/temp/contents/' . $icon['path'])) {
 					$icons[] = $icon;
+				} else if ($icon['path'] == ':installer:') {
+					$dmg['installer_pos_x'] = $icon['pos_x'];
+					$dmg['installer_pos_y'] = $icon['pos_y'];
 				}
 			}
 		} 
@@ -513,7 +520,7 @@ class StackDeployer {
 			}
 
 			if (!empty($dmg['installer'])) {
-				$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer"' . (!empty($dmg['installer_icon']) ? ', custom icon path:"' . $dmg['installer_icon'] . '"' : '') . (!empty($dmg['installer_background']) ? ', background path:"' . $dmg['installer_background'] . '"' : '') . (!empty($dmg['pos_x']) ? ', left position:' . $dmg['pos_x'] . ', top position: ' . $dmg['pos_y'] : '') . '}' . "\r\n";
+				$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer"' . (!empty($dmg['installer_icon']) ? ', custom icon path:"' . $dmg['installer_icon'] . '"' : '') . (!empty($dmg['installer_background']) ? ', background path:"' . $dmg['installer_background'] . '"' : '') . (!empty($dmg['installer_pos_x']) ? ', left position:' . $dmg['installer_pos_x'] . ', top position: ' . $dmg['installer_pos_y'] : '') . '}' . "\r\n";
 				
 				$script .= 'tell first installer' . "\r\n";
 				foreach ($dmg['installer']['files'] as $file) {
