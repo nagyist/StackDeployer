@@ -664,7 +664,7 @@ class StackDeployer {
 			$success = mkdir($this->config['output_folder'], 0777, true);
 		}
 		
-		if (!$this->config['appcast']) {
+		if (!$this->config['options']['appcast']) {
 			return;
 		}
 		
