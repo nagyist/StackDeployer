@@ -436,7 +436,7 @@ class StackDeployer {
 			//add all other files that weren't specified in the icons array..
 			if ($handle = opendir($include_path . 'lib/dmg/temp/')) {
 			    while (false !== ($entry = readdir($handle))) {
-			        if ($entry != '.' && $entry != '..' && $entry[0] != '.') {
+			        if ($entry != '.' && $entry != '..' && $entry[0] != '.' && $entry[0] != 'installer') {
 						$already_included = false;
 						
 						foreach ($icons as $icon) {
@@ -479,7 +479,7 @@ class StackDeployer {
 			}
 
 			if (!empty($dmg['installer'])) {
-				$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer", custom icon path:"' . $dmg['installer_icon'] . ' file", background path:"' . $dmg['installer_background'] . '"' . (!empty($dmg['pos_x']) ? ', left position:' . $dmg['pos_x'] . ', top position: ' . $dmg['pos_y'] : '') . '}' . "\r\n";
+				$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer", custom icon path:"' . $dmg['installer_icon'] . '", background path:"' . $dmg['installer_background'] . '"' . (!empty($dmg['pos_x']) ? ', left position:' . $dmg['pos_x'] . ', top position: ' . $dmg['pos_y'] : '') . '}' . "\r\n";
 				
 				$script .= 'tell first installer' . "\r\n";
 				foreach ($dmg['installer']['files'] as $file) {
