@@ -449,12 +449,14 @@ class StackDeployer {
 			set fileName to "' . $this->info['stack_name'] . '.dmg"
 			*/
 			
-			if (file_exists($include_path . 'lib/dmg/template.fsproj')) {
-				$open_template = $include_path . 'lib/dmg/template.fsproj';
-			} else {
+			$open_template = '/Users/Wesley/Desktop/test.fsproj';
+	//		$open_template = $include_path . 'lib/dmg/template.fsproj';
+			
+			if (!file_exists($open_template)) {
 				$open_template = false;
 			}
 			
+	
 			$script = '<<-EOF
 				tell application "FileStorm"
 					activate' . "\r\n";
@@ -559,7 +561,7 @@ class StackDeployer {
 			$tracker_file = '/Users/Wesley/Desktop/tracker.txt';
 
 			$script .= '
-						build image with replacing
+						-- build image with replacing
 						finalize image with rebuilding
 
 						repeat while building
@@ -580,6 +582,8 @@ class StackDeployer {
 				write "--DONE--" to file trackerFile
 				close access file trackerFile
 			EOF';
+			
+			echo $script;
 								
 			/*
 			--exit script parameter (text) : This is the parameter to be passed to the shell script that gets run when the installer exits.
