@@ -449,13 +449,23 @@ class StackDeployer {
 			set fileName to "' . $this->info['stack_name'] . '.dmg"
 			*/
 			
+			if (file_exists($include_path . 'lib/dmg/template.fsproj')) {
+				$open_template = $include_path . 'lib/dmg/template.fsproj';
+			} else {
+				$open_template = false;
+			}
+			
 			$script = '<<-EOF
 				tell application "FileStorm"
-					activate
-					make new document at before first document with properties {volume name:"' . $dmg['volume_name'] . '", disk image name:"' . $this->config['output_folder'] . $this->info['stack_name'] . '.dmg", width:' . $dmg['window_width'] . ', height:' . $dmg['window_height'] . ', window left position:' . $dmg['window_pos_x'] . ', window top position:' . $dmg['window_pos_y'] . (!empty($dmg['background']) ? ', background image path:"' . $dmg['background'] . '"' : '') . ', icon size:' . $dmg['icon_size'] . ', open volume:true}
+					activate' . "\r\n";
+			
+			if ($open_template) {
+				$script .= 'open POSIX file "' . $open_template . '"' . "\r\n";
+			} else {
+				$script .= 'make new document at before first document with properties {volume name:"' . $dmg['volume_name'] . '", disk image name:"' . $this->config['output_folder'] . $this->info['stack_name'] . '.dmg", width:' . $dmg['window_width'] . ', height:' . $dmg['window_height'] . ', window left position:' . $dmg['window_pos_x'] . ', window top position:' . $dmg['window_pos_y'] . (!empty($dmg['background']) ? ', background image path:"' . $dmg['background'] . '"' : '') . ', icon size:' . $dmg['icon_size'] . ', open volume:true}' . "\r\n";
+			}
 
-					tell first document
-					';
+			$script .= "\r\n" . 'tell first document' . "\r\n";
 			
 			foreach ($icons as $icon) {
 				$script .= 'make new file at before first file with properties {file path:"' . $include_path . 'lib/dmg/temp/' . $icon['path'] . '", left position:' . $icon['pos_x'] . ', top position:' . $icon['pos_y'] . '}' . "\r\n";
@@ -520,9 +530,25 @@ class StackDeployer {
 			}
 
 			if (!empty($dmg['installer'])) {
-				$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer"' . (!empty($dmg['installer_icon']) ? ', custom icon path:"' . $dmg['installer_icon'] . '"' : '') . (!empty($dmg['installer_background']) ? ', background path:"' . $dmg['installer_background'] . '"' : '') . (!empty($dmg['installer_pos_x']) ? ', left position:' . $dmg['installer_pos_x'] . ', top position: ' . $dmg['installer_pos_y'] : '') . '}' . "\r\n";
+				if (!$open_template) {
+					$script .= 'make new installer at before first installer with properties {choose volume:false, requires bootable volume:false, requires admin:false, create uninstaller:false, requires authentication:false, installer name:"' . $dmg['volume_name'] . ' Installer"' . (!empty($dmg['installer_icon']) ? ', custom icon path:"' . $dmg['installer_icon'] . '"' : '') . (!empty($dmg['installer_background']) ? ', background path:"' . $dmg['installer_background'] . '"' : '') . (!empty($dmg['installer_pos_x']) ? ', left position:' . $dmg['installer_pos_x'] . ', top position: ' . $dmg['installer_pos_y'] : '') . '}' . "\r\n";
+				} 
 				
 				$script .= 'tell first installer' . "\r\n";
+				
+				if ($open_template) {
+					$script .= 'set the choose volume to false;
+								set the requires bootable volume to false
+								set the requires admin to false
+								set the create uninstaller to false
+								set the requires authentication to false
+								set the volume name to "' . $dmg['volume_name'] . '"
+								set the installer name to "' . $dmg['volume_name'] . ' Installer"' . 
+								(!empty($dmg['installer_icon']) ? 'set the custom icon path:"' . $dmg['installer_icon'] . '"' : '') . 
+								(!empty($dmg['installer_background']) ? 'set the background path:"' . $dmg['installer_background'] . '"' : '') . 
+								(!empty($dmg['installer_pos_x']) ? 'set the left position:' . $dmg['installer_pos_x'] . "\r\n" . ' set the top position: ' . $dmg['installer_pos_y'] : '') . "\r\n";
+				}
+				
 				foreach ($dmg['installer']['files'] as $file) {
 					$script .= 'make new action at before first action with properties {action item file path:"' . $file['path'] . '"' . (!empty($file['install_path']) ? ', install path:"' . $file['install_path'] . '"' : '') . ', type:' . $file['type'] . '}' . "\r\n";
 				}
