@@ -174,9 +174,9 @@ Add subfolders for each stack. The files in the folder that matches the stack fi
 
 		*.stack
 	
-These stacks will also be installed.
+	These stacks will also be installed.
 
-All other files are ignored, unless they are specified in the configuration file under $options['dmg']['installer_files'].
+	All other files are ignored, unless they are specified in the configuration file under $options['dmg']['installer_files'].
 	
 ## AppleScript
 
