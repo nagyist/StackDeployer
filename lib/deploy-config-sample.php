@@ -46,7 +46,7 @@ set to your liking:
   - appcast = true will create the appcast XML file
   - releasenotes = true will create the releasenotes HTML file
   - verbose = true will output full file path of each file uploaded.
-  - dmg = create a DMG (filestorm) also
+  - dmg = create a DMG also
 */	
 $config['options'] = array('appcast'	  => true,
 						   'upload'       => true, 
@@ -126,6 +126,8 @@ $config['dmg']['default'] = array('format'				 => 'default',
 /*
 Filestorm has extra configuration settings for the installer, and a license agreement upon mounting the DMG.
 To call this you need to add "-g advanced" to the command line.
+
+Filestorm won't work on Lion. I informed the company, they confirmed the issue, but they do not care to fix it.
 */
 $config['dmg']['advanced'] = array('format'				 => 'filestorm',
 								   'window_width' 		 => 400, 

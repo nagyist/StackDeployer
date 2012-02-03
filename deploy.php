@@ -22,14 +22,16 @@ class StackDeployer {
 	private $include_path       = '';
 	
 	public function run() {	
-		if (!empty($_SERVER['PWD'])) {
+		if (!empty($_SERVER['PHP_SELF'])) {
+			$this->include_path = dirname($_SERVER['PHP_SELF']);
+		} else if (!empty($_SERVER['PWD'])) {
 			$this->include_path = $_SERVER['PWD'];
 		} else {
 			$this->include_path = getcwd();
 		}
 		
 		$this->include_path = rtrim($this->include_path, '/') . '/';
-				
+						
 		if (!file_exists($this->include_path . 'lib/deploy-config.php')) {
 			echo '  -- ERROR: Please configure this script first. Open "' . $this->include_path . 'lib/deploy-config-sample.php" and follow instructions. Rename to deploy-config.php once done.' . "\r\n";
 			die();
@@ -438,6 +440,8 @@ class StackDeployer {
 		
 			$success = shell_exec($command);
 		} else {
+			echo '  -- NOTE: Filestorm API probably won\'t function on Lion, it doesn\'t on mine...' . "\r\n";
+			
 			/*
 			-- set windowPosX to ' . $dmg['window_pos_x'] . '
 			-- set windowPosY to ' . $dmg['window_pos_y'] . '
@@ -455,7 +459,6 @@ class StackDeployer {
 			if (!file_exists($open_template)) {
 				$open_template = false;
 			}
-			
 	
 			$script = '<<-EOF
 				tell application "FileStorm"
@@ -895,14 +898,14 @@ class StackDeployer {
 		$this->info['stack_name'] = str_replace('.stack', '', basename($this->info['stack_location']));
 	
 		if ($this->config['use_stack_uid']) {
-			if (preg_match('/\?uid\=(.*)$/isU', $this->info['feed_url'], $match)) {
+			if (preg_match('/\?uid\=[a-z0-9]+_(.*)$/isU', $this->info['feed_url'], $match)) {
 				$this->info['stack_uid'] = trim($match[1]);
 			} else {
 				echo '  -- ERROR: Could not find stack UID.' . "\r\n";
 				return false;
 			}
 		} else {
-			$this->info['stack_uid'] = $this->info['stack_name'];
+			$this->info['stack_uid'] = '';
 		}
 					
 		$this->info['pub_date'] = date('D, d M Y H:i:s O');
@@ -1000,7 +1003,7 @@ class StackDeployer {
 	    		<item>
 	      			<title>' . $this->info['title'] . ' Stack Version ' . $this->info['version'] . '</title>
 	      			<sparkle:releaseNotesLink>' . $this->config['url'] . $this->info['release_directory'] . $this->info['release_file'] . '</sparkle:releaseNotesLink>
-					<pubDate>' . $this->info['pub_date'] . '/pubDate>
+					<pubDate>' . $this->info['pub_date'] . '</pubDate>
 	      			<guid isPermaLink="false">' . $this->info['title'] . ' Stack ' . $this->info['version'] . '</guid>
 	            	<enclosure url="' . $this->config['url'] . $this->info['update_directory'] . $this->info['update_file'] . '" length="' . $this->info['update_file_size'] . '" type="application/zip" sparkle:version="' . $this->info['version'] . '" sparkle:shortVersionString="' . $this->info['short_version'] . '" sparkle:dsaSignature="' . $this->info['signature'] . '"/>
 	    		</item>
@@ -1253,6 +1256,10 @@ class StackDeployer {
 			}
 			
 			if (file_exists($file['source'])) {
+				if (!empty($this->config['ftp']['keep_backups']) && preg_match('/\.zip/i', $file['source']) && ftp_size($this->ftp_connection, $file['destination']) > 0) {
+					ftp_rename($this->ftp_connection, $file['destination'], str_ireplace('.zip', '_' . time() . '.zip'));
+				}
+				
 				$success = ftp_put($this->ftp_connection, $file['destination'], $file['source'], $mode);
 				
 				if ($this->config['options']['verbose']) {

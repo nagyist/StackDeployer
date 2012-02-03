@@ -132,6 +132,8 @@ You have two options;
 
 - A DMG with installer. This will, for example, automatically place the stacks in the correct rapidweaver library folder. This does however, require filestorm (http://www.mindvision.com/filestorm.asp).
 
+**FILESTORM DOES NOT WORK, THEIR API HAS ISSUES WITH APPLESCRIPT. INFORMED FILESTORM, BUT THEY DO NOT CARE.**
+
 To configure, set your options in the config file dmg array.
 
 If you have files that need to be included aside from the stack, add them to:
