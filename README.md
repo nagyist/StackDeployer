@@ -150,27 +150,29 @@ Add subfolders for each stack. The files in the folder that matches the stack fi
 
 	lib/dmg/conditional/TestName/readme.txt
 	
-Exclusive to the filestorm DMG creation, you can place files that need to be installed in the following folders: 
+**The below does not apply as filestorm is not working.**
 
-	lib/dmg/always/installer/
+	Exclusive to the filestorm DMG creation, you can place files that need to be installed in the following folders: 
+
+		lib/dmg/always/installer/
 	
-	lib/dmg/conditional/TestName/installer/
+		lib/dmg/conditional/TestName/installer/
 	
-There are some special filenames for files placed in the installer directory: 
+	There are some special filenames for files placed in the installer directory: 
 
-	license.txt
+		license.txt
 	
-This will be shown before installation starts. The user has to accept before he can continue installation.
+	This will be shown before installation starts. The user has to accept before he can continue installation.
 
-	readme.txt / readme.html
+		readme.txt / readme.html
 
-This text file will be shown after the installation has happened.
+	This text file will be shown after the installation has happened.
 
-	*.sh
+		*.sh
 	
-These shell scripts will be executed after the installation has happened.
+	These shell scripts will be executed after the installation has happened.
 
-	*.stack
+		*.stack
 	
 These stacks will also be installed.
 
